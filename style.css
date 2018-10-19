@@ -1,0 +1,13 @@
+.reveal p {
+  text-align: left;
+  font-size: 0.8em;
+}
+
+.reveal ul > li {
+  text-align: left;
+  font-size: 0.8em;
+}
+
+.reveal pre {
+  font-size: 0.5em;
+}
