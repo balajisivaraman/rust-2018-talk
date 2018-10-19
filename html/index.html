@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+        <title>The Rust 2018 Edition</title>
+        <link rel="stylesheet" href="./css/reveal.css">
+        <link rel="stylesheet" href="./css/theme/white.css" id="theme">
+        <link rel="stylesheet" href="./css/highlight/dracula.css">
+        <link rel="stylesheet" href="./css/print/paper.css" type="text/css" media="print">
+          <link rel="stylesheet" href="./_assets/style.css">
+
+		<script>
+		  document.write(
+        '<script src="http://' +
+        (location.host || 'localhost').split(':')[0] +
+        ':35729/livereload.js?snipver=1"></' + 'script>');
+    </script>
+
+    </head>
+    <body>
+
+        <div class="reveal">
+            <div class="slides"><section  data-markdown><script type="text/template">
+
+## The Rust 2018 Edition
+<center>[@balajisivaraman](https://twitter.com/balajisivaraman)</center>
+</script></section><section  data-markdown><script type="text/template">
+## Agenda
+
+- Introduction
+- The Edition System
+- Revamped Module System
+- Cleaner Error Handling System
+- Better Trait Ergonomics
+- Lifetime Changes
+- Macros Changes
+- Compiler Changes
+- What's in the Future?
+</script></section><section ><section data-markdown><script type="text/template">
+## The Edition System
+
+- Rust operates on a six-week cycle, unlike
+other languages. Changes keep coming in
+thick and fast.
+- For example,
+[1.26](https://github.com/Aaronepower/rust/blob/master/RELEASES.md#version-1260-2018-05-10)
+was one of the major releases in Rust's history, but in the
+larger scheme of things, it's just a minor version increase.
+- They let the Rust team declare "Here's what
+we have achieved so far!"
+- They also give new users a guidepost to
+start getting into Rust.
+</script></section><section data-markdown><script type="text/template">
+### What are the editions?
+
+- Rust 2015 - Current, initially released in 2015.
+  - Lots of features we'll see today are actually available in 2015,
+    but are marketed as part of 2018.
+  - Theme was *stability*, because before 1.0 change was constant.
+- Rust 2018 - Planned release in Dec 2018, as part of Rust 1.31.
+  - Introduces new keywords and features, some of which aren't
+    backward compatible with 2015.
+  - Theme is *productivity*. We'll see why in this presentation.
+
+**Note**: The actual Rust compiler binary you use isn't affected by
+this. Edition is a configuration in the `Cargo.toml` file.
+</script></section><section data-markdown><script type="text/template">
+### Confused?
+
+You opt-in to editions like below:
+
+```rust
+[package]
+edition = "2018"
+```
+
+- But you still compile using whatever `rustc` that was installed with
+ `rustup`. The flag above tells the toolchain what edition to use.
+- As of now, very few features are 2018-only, but more are being
+  stabilized.
+</script></section></section><section ><section data-markdown><script type="text/template">
+## Revamped Module System
+</script></section><section data-markdown><script type="text/template">
+### Extern Crate Inconveniences
+
+This was always required in Rust 2015.
+
+In `Cargo.toml`,
+```toml
+[dependencies]
+serde = "1.0.71"
+serde_derive = "1.0.71"
+```
+
+And in `lib.rs`,
+```rust
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+```
+</script></section><section data-markdown><script type="text/template">
+#### Similar Code Interpreted Differently
+
+Given this:
+
+```rust
+fn main() {
+    let res: std::result::Result<i32> = std::result::Result::Ok(32)
+}
+```
+
+Will you expect this to compile?
+<!-- .element: class="fragment" -->
+
+```
+mod submodule {
+    fn method() {
+        let res: std::result::Result<i32> = std::result::Result::Ok(32)
+    }
+}
+```
+<!-- .element: class="fragment" -->
+
+But unfortunately, it doesn't!
+<!-- .element: class="fragment" -->
+
+This is because in Rust 2015 the path of `std::Result` is considered
+relative, and the submodule doesn't contain any `std`.
+
+<!-- .element: class="fragment" -->
+</script></section><section data-markdown><script type="text/template">
+### Uniform Paths
+
+In Rust 2018, we get uniform path naming:
+
+- Use `crate` to refer to an item in our crate.
+- Use `self` to refer to an item in our module.
+- Use `super` to refer to an item in a parent module.
+- Use crate name to refer to items in external crates.
+</script></section><section data-markdown><script type="text/template">
+Now you get code that makes sense all the time:
+
+```rust
+mod module1 {
+    pub fn fun1() { }
+
+    fn fun5( ) { self::fun1(); }
+
+    mod module2 {
+        fn fun2() { super::fun1(); }
+    }
+}
+
+mod module3 {
+    fn fun3() { crate::module1::fun1(); }
+
+    fn fun4() -> std::option::Option<i32> { std::option::Option::Some(3) }
+}
+```
+</script></section><section data-markdown><script type="text/template">
+### Also For Macros
+
+You can now import macros without needing `macro_use` and `extern crate`:
+
+```rust
+use serde_derive::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+struct Bar;
+```
+</script></section><section data-markdown><script type="text/template">
+### Added Benefits
+
+- Additional Visibility Modifiers
+  - `pub(crate)` and `pub(in a::b::c)`
+- Nested Imports
+    ```rust
+    use std::{
+        fs::File,
+        io::Read,
+        path::{
+            Path,
+            PathBuf
+        }
+    };
+    ```
+</script></section></section><section ><section data-markdown><script type="text/template">
+## Cleaner Error Handling System
+</script></section><section data-markdown><script type="text/template">
+### The `?` Operator
+
+- Replacement for `try!` macro in older Rust versions. Now the defacto
+  standard for error propagation.
+- Reduces lot of verbosity in our code, as we'll see.
+- One of the primary reasons why Rust is such a pleasure to use.
+</script></section><section data-markdown><script type="text/template">
+```rust
+fn read_username_from_file() -> Result<String, io::Error> {
+    let f = File::open("username.txt");
+
+    let mut f = match f {
+        Ok(file) => file,
+        Err(e) => return Err(e),
+    };
+
+    let mut s = String::new();
+
+    match f.read_to_string(&mut s) {
+        Ok(_) => Ok(s),
+        Err(e) => Err(e),
+    }
+}
+```
+</script></section><section data-markdown><script type="text/template">
+```rust
+fn read_username_from_file() -> Result<String, io::Error> {
+    let mut f = File::open("username.txt")?;
+    let mut s = String::new();
+
+    f.read_to_string(&mut s)?;
+
+    Ok(s)
+}
+```
+</script></section><section data-markdown><script type="text/template">
+### `?` in Main and Tests
+
+- `?` is great, but you couldn't use it in `main` or tests before Rust
+  1.26.
+- If you're coming from Haskell, imagine if `main` in Haskell couldn't
+  return `IO`.
+
+Instead from Rust 1.26, you can do this:
+
+```rust
+use std::fs::File;
+
+fn main() -> Result<(), std::io::Error> {
+    let f = File::open("bar.txt")?;
+
+    Ok(())
+}
+```
+</script></section></section><section ><section data-markdown><script type="text/template">
+## Better Trait Ergonomics
+</script></section><section data-markdown><script type="text/template">
+### Impl Trait
+
+This is what happens when you use `.iter()` operations in Rust:
+
+```rust
+let v: Vec<i32> = vec![1,2,3].into_iter().map(|x| x * x).filter(|x| *x != 9).map(|x| x * 2);
+
+= not: expected type `std::vec::Vec<i32>`
+       found type `std::iter::Map<std::iter::Filter<std::iter::Map<std::vec::IntoIter<{integer}>
+```
+</script></section><section data-markdown><script type="text/template">
+Now imagine you wanted to return this from a method, you have to wrap
+it in a `Box`:
+
+```rust
+fn get_vec() -> Box<Iterator<Item = i32>> {
+    Box::new(vec![1,2,3].into_iter().map(|x| x * x).filter(|x| *x != 9).map(|x| x * 2))
+}
+```
+</script></section><section data-markdown><script type="text/template">
+```
+fn get_vec_better() -> impl Iterator<Item = i32> {
+    vec![1,2,3].into_iter().map(|x| x * x).filter(|x| *x != 9).map(|x| x * 2)
+}
+```
+</script></section><section data-markdown><script type="text/template">
+- This is just a fancy way of saying "Any type that implements this
+  type", which some folks refer to as Existential Types.
+- You could always get this for method parameters using `<T: Trait>`,
+  but not in return position.
+  ```rust
+  fn foo<T: Trait>(arg: T) { }
+  ```
+- This is also better because you're not paying the memory cost of an
+  additional allocation if you use `Box`.
+</script></section></section><section ><section data-markdown><script type="text/template">
+## Lifetime System Changes
+</script></section><section data-markdown><script type="text/template">
+### Better Match Semantics
+
+From my [first](https://github.com/balajisivaraman/basic_calculator_rs/) Rust project:
+
+```rust
+fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match *self {
+        UndefinedVariable(ref varname) => write!(f, "Undefined Variable: {}", varname),
+        InvalidVariableReference(ref varname) => {
+            write!(
+                f,
+                "Syntax Error: Variable {} doesn't refer to a computed value",
+                varname
+            )
+        }
+    }
+}
+```
+</script></section><section data-markdown><script type="text/template">
+As of Rust 1.26, you can do this:
+
+```rust
+fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self {
+        UndefinedVariable(varname) => write!(f, "Undefined Variable: {}", varname),
+        InvalidVariableReference(varname) => {
+            write!(
+                f,
+                "Syntax Error: Variable {} doesn't refer to a computed value",
+                varname
+            )
+        }
+    }
+}
+```
+</script></section><section data-markdown><script type="text/template">
+### Non Lexical Lifetimes
+
+```rust
+fn main() {
+    let mut x = 5;
+
+    let y = &x;
+
+    let z = &mut x;
+}
+```
+
+```
+error[E0502]: cannot borrow `x` as mutable because it is also borrowed as immutable
+ --> src/main.rs:5:18
+  |
+4 |     let y = &x;
+  |              - immutable borrow occurs here
+5 |     let z = &mut x;
+  |                  ^ mutable borrow occurs here
+6 | }
+  | - immutable borrow ends here
+```
+</script></section></section><section  data-markdown><script type="text/template">
+## Toolchain Improvements
+
+- cargo check
+- cargo patch
+- Incremental Compilation
+</script></section><section  data-markdown><script type="text/template">
+## What's in the Future?
+
+- `async`/`await`
+</script></section><section  data-markdown><script type="text/template"></script></section></div>
+        </div>
+
+        <script src="./lib/js/head.min.js"></script>
+        <script src="./js/reveal.js"></script>
+
+        <script>
+            function extend() {
+              var target = {};
+              for (var i = 0; i < arguments.length; i++) {
+                var source = arguments[i];
+                for (var key in source) {
+                  if (source.hasOwnProperty(key)) {
+                    target[key] = source[key];
+                  }
+                }
+              }
+              return target;
+            }
+
+            // Optional libraries used to extend on reveal.js
+            var deps = [
+              { src: './lib/js/classList.js', condition: function() { return !document.body.classList; } },
+              { src: './plugin/markdown/marked.js', condition: function() { return !!document.querySelector('[data-markdown]'); } },
+              { src: './plugin/markdown/markdown.js', condition: function() { return !!document.querySelector('[data-markdown]'); } },
+              { src: './plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+              { src: './plugin/zoom-js/zoom.js', async: true },
+              { src: './plugin/notes/notes.js', async: true },
+              { src: './plugin/math/math.js', async: true }
+            ];
+
+            // default options to init reveal.js
+            var defaultOptions = {
+              controls: true,
+              progress: true,
+              history: true,
+              center: true,
+              transition: 'default', // none/fade/slide/convex/concave/zoom
+              dependencies: deps
+            };
+
+            // options from URL query string
+            var queryOptions = Reveal.getQueryHash() || {};
+
+            var options = {"controls":true,"progress":true};
+            options = extend(defaultOptions, options, queryOptions);
+        </script>
+
+
+        <script>
+          Reveal.initialize(options);
+        </script>
+    </body>
+</html>
