@@ -31,12 +31,11 @@
 
 - Introduction
 - The Edition System
-- Revamped Module System
-- Cleaner Error Handling System
+- Revamped Modules
+- Cleaner Error Handling
 - Better Trait Ergonomics
-- Lifetime Changes
-- Macros Changes
-- Compiler Changes
+- Changes To Lifetime System
+- Toolchain Improvements
 - What's in the Future?
 </script></section><section ><section data-markdown><script type="text/template">
 ## The Edition System
@@ -81,7 +80,7 @@ edition = "2018"
 - As of now, very few features are 2018-only, but more are being
   stabilized.
 </script></section></section><section ><section data-markdown><script type="text/template">
-## Revamped Module System
+## Revamped Modules
 </script></section><section data-markdown><script type="text/template">
 ### Extern Crate Inconveniences
 
@@ -187,7 +186,7 @@ struct Bar;
     };
     ```
 </script></section></section><section ><section data-markdown><script type="text/template">
-## Cleaner Error Handling System
+## Cleaner Error Handling
 </script></section><section data-markdown><script type="text/template">
 ### The `?` Operator
 
@@ -282,7 +281,7 @@ fn get_vec_better() -> impl Iterator<Item = i32> {
 - This is also better because you're not paying the memory cost of an
   additional allocation if you use `Box`.
 </script></section></section><section ><section data-markdown><script type="text/template">
-## Lifetime System Changes
+## Changes To Lifetime System
 </script></section><section data-markdown><script type="text/template">
 ### Better Match Semantics
 
@@ -346,14 +345,20 @@ error[E0502]: cannot borrow `x` as mutable because it is also borrowed as immuta
 </script></section></section><section  data-markdown><script type="text/template">
 ## Toolchain Improvements
 
-- cargo check
-- cargo patch
-- Incremental Compilation
+- Incremental Compilation (as of 1.24)
+- `cargo check` subcommand (as of 1.16)
+- `cargo patch` subcommand (as of 1.21)
 </script></section><section  data-markdown><script type="text/template">
 ## What's in the Future?
 
-- `async`/`await`
-</script></section><section  data-markdown><script type="text/template"></script></section></div>
+- `async`/`await` -
+  [RFC](https://github.com/rust-lang/rfcs/blob/master/text/2394-async_await.md).
+  (Impatient folks can use the
+  [futures-await](https://github.com/alexcrichton/futures-await)
+  crate)
+</script></section><section  data-markdown><script type="text/template">
+## Thank You
+</script></section></div>
         </div>
 
         <script src="./lib/js/head.min.js"></script>
