@@ -106,7 +106,7 @@ Given this:
 
 ```rust
 fn main() {
-    let res: std::result::Result<i32> = std::result::Result::Ok(32)
+    let res: std::option::Option<i32> = std::option::Option::Some(3)
 }
 ```
 
@@ -116,7 +116,7 @@ Will you expect this to compile?
 ```
 mod submodule {
     fn method() {
-        let res: std::result::Result<i32> = std::result::Result::Ok(32)
+        let res: std::option::Option<i32> = std::option::Option::Some(3)
     }
 }
 ```
